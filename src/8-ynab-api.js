@@ -38,7 +38,9 @@ async function yPick(i) {
       <div class="kpi"><span>Accounts</span><b>${B.accounts.filter(live).length}</b></div><div class="kpi"><span>Categories</span><b>${B.categories.filter(live).length}</b></div>
       <div class="kpi"><span>Transactions</span><b>${B.transactions.filter(live).length}</b></div><div class="kpi"><span>Months</span><b>${(B.months || []).length}</b></div></div>
       <div class="small muted">The import creates a new plan “${esc(B.name)}”; your current plan is untouched.</div>
-      <button class="btn pri block" data-a="yDo">Import everything</button>`;
+      <button class="btn pri block" data-a="yDo">Import everything</button>
+      ${A.plan ? `<div class="sec-t"><span>Or fix this plan only</span></div><div class="small muted">Copies YNAB's assigned amount for every category and every past month into “${esc(A.plan.name)}”. Transactions, bank links and this month stay as they are. Undo is possible.</div>
+      <button class="btn block" data-a="yFixAssigned">Match assigned amounts to YNAB</button>` : ''}`;
   } catch (e) { st.innerHTML = `<div class="banner bad">${I.info}<span>${esc(e.message || 'Download failed')}</span></div>`; }
 }
 function yDo() {
@@ -215,4 +217,39 @@ function learnFromYnab(list) {
   for (const [k, v] of Object.entries(votes)) map[k] = Object.entries(v).sort((a, b) => b[1] - a[1])[0][0];
   mutate('Payee names learned', () => { A.plan.learned = { ...(A.plan.learned || {}), ...map }; });
   return Object.keys(map).length;
+}
+
+/* Fix only the assigned amounts of the current plan from YNAB (past months), matching categories by group + name */
+function yFixAssigned() {
+  const B = YA?.b; if (!B || !A.plan) return;
+  const live = x => !x.deleted, c = v => Math.round((v || 0) / 10);
+  const key = x => (x || '').normalize('NFD').replace(/[̀-ͯ️]/g, '').toLowerCase().replace(/\s+/g, '');
+  const words = x => key(x).replace(/[^\p{L}\p{N}]/gu, '');
+  const gName = {}; for (const g of B.category_groups.filter(live)) gName[g.id] = g.name;
+  const appCats = A.plan.cats.map(x => ({ c: x, g: L.group[x.gid]?.name || '', n: (x.emoji ? x.emoji + ' ' : '') + x.name }));
+  const map = {}, miss = [];
+  for (const k of B.categories.filter(live)) {
+    const gn = gName[k.category_group_id] || '';
+    if (/internal master category/i.test(gn)) continue;
+    let id = null;
+    if (/credit card payments/i.test(gn)) { const acc = A.plan.accounts.find(a => key(a.name) === key(k.name)); id = acc && L.ccCat[acc.id]?.id; }
+    else {
+      let m = appCats.filter(x => !x.c.cc && key(x.n) === key(k.name) && key(x.g) === key(gn));
+      if (m.length !== 1) m = appCats.filter(x => !x.c.cc && key(x.n) === key(k.name));
+      if (m.length !== 1) m = appCats.filter(x => !x.c.cc && words(x.n) === words(k.name) && words(x.g) === words(gn));
+      if (m.length === 1) id = m[0].c.id;
+    }
+    if (id) map[k.id] = id; else miss.push(k.name);
+  }
+  const cur = curMonth(); let n = 0, months = 0;
+  mutate('Assigned amounts matched to YNAB', () => {
+    for (const mo of (B.months || [])) {
+      const m = mo.month.slice(0, 7); if (m >= cur) continue; let ch = 0;
+      for (const k of (mo.categories || [])) { const id = map[k.id]; if (!id) continue; const v = c(k.budgeted); if (getAssigned(m, id) !== v) { setAssigned(m, id, v); ch++; } }
+      if (ch) { n += ch; months++; }
+    }
+    A.calcV++;
+  });
+  const missTxt = miss.filter(x => !/^(inflow|uncategorized|split)/i.test(x));
+  $('#yStep').innerHTML = `<div class="banner ${n ? 'good' : ''}">${I.check}<span>${n ? n + ' amounts corrected over ' + months + ' month(s).' : 'Already identical to YNAB.'}${missTxt.length ? ' Not found here: ' + esc(missTxt.slice(0, 8).join(', ')) + (missTxt.length > 8 ? '…' : '') : ''}</span></div>`;
 }
