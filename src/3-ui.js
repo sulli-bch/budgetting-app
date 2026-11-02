@@ -588,7 +588,8 @@ function viewRegister() {
     } else {
       let day = '';
       for (const t of list.slice(0, lim)) {
-        if (t.date !== day) { if (day) h += `</div>`; day = t.date; h += `<div class="day">${DESK() ? dayLabel(t.date) : fullDay(t.date)}</div><div class="card daycard">`; }
+        const dk = t.pend ? 'pending' : t.date;
+        if (dk !== day) { if (day) h += `</div>`; day = dk; h += t.pend ? `<button class="day ypend" data-a="pendToggle">${A.ui.pendCol ? I.right : I.down}<span>Pending</span></button><div class="card daycard" ${A.ui.pendCol ? 'hidden' : ''}>` : `<div class="day">${fullDay(t.date)}</div><div class="card daycard">`; }
         h += txRow(t, all, null);
       }
       h += `</div>`;
@@ -644,13 +645,19 @@ function txRow(t, showAcct, runBal) {
 const fullDay = iso => { const d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); };
 function txRowY(t, showAcct, runBal) {
   const c = txCatLabel(t), todo = c === 'Category Needed' || (!c && !t.transferAcct && onBudget(L.acct[t.acct]));
-  const chip = t.transferAcct && !c ? trLabel(t.transferAcct, t.acct) : (c || '');
-  return `<div data-tid="${t.id}" class="tx yrow ${t.approved === false ? 'unapproved' : ''} ${todo ? 'need' : ''}">
+  const inc = t.cat === 'rta';
+  const chip = todo ? 'Category Needed' : inc ? 'Income: Ready to Assign' : (t.transferAcct && !c ? trLabel(t.transferAcct, t.acct) : (c || ''));
+  const chipIco = todo ? ico('<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 13h4l1 3h6l1-3h4"/>') : inc ? NAVF.plan : '';
+  const st = t.pend ? `<span class="ystat pend" aria-label="Pending">${ico('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}</span>`
+    : t.approved === false ? '' : `<button class="ystat ${t.cleared}" data-a="clr" data-id="${t.id}" aria-label="${t.cleared === 'u' ? 'Uncleared' : t.cleared === 'c' ? 'Cleared' : 'Reconciled'}">${t.cleared === 'r' ? I.lock : 'C'}</button>`;
+  return `<div data-tid="${t.id}" class="tx yrow ${t.approved === false ? 'unapproved' : ''} ${todo ? 'need' : ''} ${t.pend ? 'pend' : ''}">
     ${A.ui.select ? `<input type="checkbox" class="chk" data-c="selTx" data-id="${t.id}" ${A.ui.selected.has(t.id) ? 'checked' : ''} aria-label="Select">` : ''}
     ${t.flag ? `<span class="flag" style="background:var(--flag-${t.flag})"></span>` : ''}
-    <button class="main-b" data-a="txEdit" data-id="${t.id}"><span class="p ellip">${esc(payeeName(t) || (t.transferAcct ? trLabel(t.transferAcct, t.acct) : 'No payee'))}</span><span class="crow">${chip ? `<span class="cchip ${todo ? 'todo' : ''}">${todo ? ico('<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 13h4l1 3h6l1-3h4"/>') : ''}${esc(todo ? 'Category Needed' : chip)}</span>` : ''}${t.memo ? `<span class="cmemo ellip">${esc(t.memo)}</span>` : ''}</span></button>
-    <div class="rt"><div class="a ${t.amount > 0 ? 'amt-pos' : ''}">${t.amount > 0 ? '+' : ''}${fmt(t.amount)}</div>${showAcct ? `<div class="acc ellip">${esc(L.acct[t.acct]?.name || '')}</div>` : runBal != null ? `<div class="rb num">${fmt(runBal)}</div>` : ''}</div>
-    ${clrBtn(t)}</div>`;
+    <button class="main-b" data-a="txEdit" data-id="${t.id}">
+      <span class="l1"><span class="p ellip">${esc(payeeName(t) || (t.transferAcct ? trLabel(t.transferAcct, t.acct) : 'No payee'))}</span><span class="a num ${t.amount > 0 ? 'amt-pos' : ''}">${fmt(t.amount)}</span></span>
+      <span class="crow">${chip ? `<span class="cchip ${todo ? 'todo' : ''} ${inc ? 'inc' : ''}">${chipIco}<span class="ellip">${esc(chip)}</span></span>` : ''}${t.memo ? `<span class="cmemo ellip">${esc(t.memo)}</span>` : ''}<span class="grow"></span>${showAcct ? `<span class="acc ellip">${esc(L.acct[t.acct]?.name || '')}</span>` : runBal != null ? `<span class="acc num">${fmt(runBal)}</span>` : ''}</span>
+    </button>
+    ${st}</div>`;
 }
 function actionBar() {
   const n = A.ui.selected.size, ts = A.tx.filter(t => A.ui.selected.has(t.id));
