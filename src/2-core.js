@@ -152,7 +152,25 @@ function rebuildLookups() {
   for (const g of p.groups) L.group[g.id] = g;
   for (const c of p.cats) { L.cat[c.id] = c; if (c.cc) L.ccCat[c.cc] = c; }
   for (const y of p.payees) { L.payee[y.id] = y; L.payeeByName[y.name.toLowerCase()] = y; }
+  L.loanCat = loanCats(p);
 }
+/* Loan payments like YNAB: a transfer from a budget account to a loan account counts against that loan's category
+   (c.loan, or the category named like the account: "💰 Prêt Étudiant" ↔ "💰 Étudiant"), instead of staying "Category Needed" */
+function loanCats(p) {
+  const out = {}, cats = p.cats.filter(c => !c.cc && !c.hidden && !(L.group[c.gid]?.sys));
+  const full = x => (x || '').normalize('NFD').replace(/[\u0300-\u036f\uFE0F]/g, '').toLowerCase().replace(/\b(pret|prets|loan|emprunt|credit|payment|paiement|remboursement)\b/g, '').replace(/[\s\-_.:·]+/g, '');
+  const words = x => full(x).replace(/[^\p{L}\p{N}]/gu, '');
+  const cname = c => (c.emoji ? c.emoji + ' ' : '') + c.name;
+  for (const a of p.accounts) {
+    if (ACCT[a.type]?.grp !== 'loan') continue;
+    const linked = cats.find(c => c.loan === a.id); if (linked) { out[a.id] = linked.id; continue; }
+    let m = cats.filter(c => full(cname(c)) === full(a.name));
+    if (m.length !== 1 && words(a.name)) m = cats.filter(c => words(cname(c)) === words(a.name));
+    if (m.length === 1) out[a.id] = m[0].id;
+  }
+  return out;
+}
+const loanCatOf = t => { if (!t.transferAcct || t.cat) return null; const a = L.acct[t.acct], b = L.acct[t.transferAcct]; return a && b && t.amount < 0 && onBudget(a) && ACCT[b.type]?.grp === 'loan' ? (L.loanCat?.[b.id] || null) : null; };
 const catName = id => id === 'rta' ? 'Inflow: Ready to Assign' : (L.cat[id] ? ((L.cat[id].emoji ? L.cat[id].emoji + ' ' : '') + L.cat[id].name) : '');
 function payeeName(t) {
   if (t.transferAcct) return trLabel(t.transferAcct, t.acct);
@@ -169,7 +187,7 @@ function ensureCcCat(acct) {
   const c = { id: uid(), gid: 'g_cc', name: acct.name, cc: acct.id, note: '', target: null };
   A.plan.cats.push(c); L.cat[c.id] = c; L.ccCat[acct.id] = c;
 }
-const txLines = t => (t.splits && t.splits.length) ? t.splits : [{ cat: t.cat, amount: t.amount, memo: t.memo }];
+const txLines = t => (t.splits && t.splits.length) ? t.splits : [{ cat: t.cat || loanCatOf(t), amount: t.amount, memo: t.memo }];
 
 /* ---------- balances ---------- */
 function balances() {

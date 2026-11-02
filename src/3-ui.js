@@ -418,7 +418,7 @@ function txCatLabel(t) {
   if (t.splits && t.splits.length) return 'Split (Multiple Categories)';
   if (t.cat === '__start') return 'Starting Balance';
   if (t.cat) return catName(t.cat);
-  if (t.transferAcct) return onBudget(a) && onBudget(L.acct[t.transferAcct]) ? '' : '';
+  if (t.transferAcct) { const lc = loanCatOf(t); return lc ? catName(lc) : ''; }
   if (onBudget(a)) return 'Category Needed';
   return '';
 }
@@ -732,5 +732,5 @@ function collapseLegs(list) {
   for (const t of list) { const k = legKey(t); if (!k) { out.push(t); continue; } if (seen.has(k)) continue; const legs = txLegs(t); if (legs.length < 2) { out.push(t); continue; } seen.add(k); out.push(Object.assign(Object.create(t), { _legs: legs, amount: legs.reduce((a, x) => a + x.amount, 0), id: legs[0].id })); }
   return out;
 }
-const legLabel = l => l.transferAcct ? trLabel(l.transferAcct, l.acct) : (txCatLabel(l) || 'Category Needed');
+const legLabel = l => l.transferAcct ? (loanCatOf(l) ? catName(loanCatOf(l)) : trLabel(l.transferAcct, l.acct)) : (txCatLabel(l) || 'Category Needed');
 const legPayee = legs => { const p = legs.find(l => !l.transferAcct && l.payee); return p ? payeeName(p) : payeeName(legs[0]) || 'Split'; };
