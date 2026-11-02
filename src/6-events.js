@@ -47,7 +47,14 @@ const ACT = {
   tTab: el => { const c = L.cat[el.dataset.c], v = el.dataset.v; mutate('Target updated', () => { const o = c.target || { amount: 0, mode: 'set' }; const type = v === 'custom' ? (o.type === 'balance' || o.type === 'date' ? o.type : 'date') : v; c.target = targetTab(o) === v ? { ...o, type } : { type, amount: o.amount || 0, mode: o.mode || 'set', snooze: o.snooze || null, ...(o.start ? { start: o.start } : {}) }; if (type === 'date' && !c.target.date) c.target.date = A.month; }, { silent: true }); catSheet(c.id); },
   tDel: el => { const c = L.cat[el.dataset.c]; mutate('Target deleted', () => { c.target = null; }); catSheet(c.id); },
   tSnooze: el => { const c = L.cat[el.dataset.c]; mutate('Target updated', () => { c.target.snooze = c.target.snooze === A.month ? null : A.month; }); catSheet(c.id); },
-  cMove: el => { const cs = A.plan.cats, i = cs.findIndex(c => c.id === el.dataset.c), d = +el.dataset.d; const g = cs[i].gid; let j = i + d; while (j >= 0 && j < cs.length && cs[j].gid !== g) j += d; if (j < 0 || j >= cs.length) return; mutate('Order updated', () => { [cs[i], cs[j]] = [cs[j], cs[i]]; }, { silent: true }); },
+  cMove: el => { // up/down within the group; at the group's edge, jump into the previous/next group (like dragging in YNAB)
+    const cs = A.plan.cats, i = cs.findIndex(c => c.id === el.dataset.c), d = +el.dataset.d; if (i < 0) return; const c = cs[i], g = c.gid;
+    let j = i + d; while (j >= 0 && j < cs.length && cs[j].gid !== g) j += d;
+    if (j >= 0 && j < cs.length) return mutate('Order updated', () => { [cs[i], cs[j]] = [cs[j], cs[i]]; }, { silent: true });
+    const gs = A.plan.groups.filter(x => !x.sys), gi = gs.findIndex(x => x.id === g), ng = gs[gi + d]; if (!ng) return;
+    mutate('Moved to ' + ng.name, () => { const rest = cs.filter(x => x !== c); c.gid = ng.id; let k;
+      if (d < 0) { k = -1; rest.forEach((x, n) => { if (x.gid === ng.id) k = n; }); k = k < 0 ? rest.length : k + 1; } else { k = rest.findIndex(x => x.gid === ng.id); if (k < 0) k = rest.length; }
+      rest.splice(k, 0, c); A.plan.cats = rest; }); },
   gMove: el => { const gs = A.plan.groups, i = gs.findIndex(g => g.id === el.dataset.g), d = +el.dataset.d; let j = i + d; while (j >= 0 && j < gs.length && gs[j].sys) j += d; if (j < 0 || j >= gs.length) return; mutate('Order updated', () => { [gs[i], gs[j]] = [gs[j], gs[i]]; }, { silent: true }); },
   cHide: el => { const c = L.cat[el.dataset.c]; mutate(c.hidden ? 'Category unhidden' : 'Category hidden', () => { c.hidden = !c.hidden; }); if ($('#scrim')) closeSheet(); },
   gEdit: el => groupSheet(el.dataset.g), groupNew: () => groupSheet(null),
