@@ -39,7 +39,7 @@ async function yPick(i) {
       <div class="kpi"><span>Transactions</span><b>${B.transactions.filter(live).length}</b></div><div class="kpi"><span>Months</span><b>${(B.months || []).length}</b></div></div>
       <div class="small muted">The import creates a new plan “${esc(B.name)}”; your current plan is untouched.</div>
       <button class="btn pri block" data-a="yDo">Import everything</button>
-      ${A.plan ? `<div class="sec-t"><span>Or fix this plan only</span></div><div class="small muted">Copies YNAB's assigned amount for every category and every past month into “${esc(A.plan.name)}”. Transactions, bank links and this month stay as they are. Undo is possible.</div>
+      ${A.plan ? `<div class="sec-t"><span>Or fix this plan only</span></div><div class="small muted">Copies YNAB's assigned amount for every category and every past month into “${esc(A.plan.name)}”. Transactions, bank links and this month stay as they are. Undo is possible. Only use it if YNAB is up to date: otherwise it brings back YNAB's older amounts.</div>
       <button class="btn block" data-a="yFixAssigned">Match assigned amounts to YNAB</button>` : ''}`;
   } catch (e) { st.innerHTML = `<div class="banner bad">${I.info}<span>${esc(e.message || 'Download failed')}</span></div>`; }
 }

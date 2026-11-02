@@ -526,7 +526,7 @@ Object.assign(ACT, { regSort: el => { const k = el.dataset.k, so = A.ui.sort || 
   document.body.appendChild(bar);
   let cur = null;
   const place = () => { const vv = window.visualViewport; const off = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0; bar.style.bottom = off + 'px'; };
-  document.addEventListener('focusin', e => { if (e.target.matches?.(SEL)) { cur = e.target; bar.hidden = false; bar.classList.toggle('withcat', !!cur.dataset.assign); place(); } });
+  document.addEventListener('focusin', e => { if (e.target.matches?.(SEL) && !e.target.matches('.ass-in')) { cur = e.target; bar.hidden = false; bar.classList.toggle('withcat', !!cur.dataset.assign); place(); } });
   document.addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement?.matches?.(SEL)) { bar.hidden = true; cur = null; } }, 80));
   window.visualViewport?.addEventListener('resize', place); window.visualViewport?.addEventListener('scroll', place);
   const fire = el => el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -705,10 +705,14 @@ document.addEventListener('change', e => { if (e.target.dataset?.c !== 'reflPeri
     if (el && document.body.contains(el)) { el.classList.remove('kp-on'); if (save) applyAssign(el); else { el.value = fmtIn(getAssigned(A.month, el.dataset.assign)); } }
   };
   const open = el => {
-    close(true); inp = el; fresh = true; el.classList.add('kp-on');
+    const cid0 = el.dataset.assign;
+    close(true); // saving the previous cell re-draws the plan: take the fresh input for the cell that was tapped
+    el = document.querySelector(`.ass-in[data-assign="${cid0}"]`) || el;
+    el.setAttribute('inputmode', 'none'); el.readOnly = true;
+    inp = el; fresh = true; el.classList.add('kp-on');
     kp = document.createElement('div'); kp.className = 'ykp'; kp.setAttribute('role', 'dialog'); kp.setAttribute('aria-label', 'Keypad');
     const k = (v, l, c = '') => `<button type="button" data-k="${v}" class="${c}">${l}</button>`;
-    kp.innerHTML = `<div class="ykp-top">${k('auto', I.wand + '<span>Auto-Assign</span>', 'tool')}${k('move', I.swap + '<span>Move Money</span>', 'tool')}${k('details', I.dots + '<span>Details</span>', 'tool')}</div>
+    kp.innerHTML = `<div class="ykp-top">${k('close', I.close, 'tool x')}${k('auto', I.wand + '<span>Auto-Assign</span>', 'tool')}${k('move', I.swap + '<span>Move Money</span>', 'tool')}${k('details', I.dots + '<span>Details</span>', 'tool')}</div>
       <div class="ykp-g">${k('7', '7')}${k('8', '8')}${k('9', '9')}${k('-', '−', 'op')}${k('4', '4')}${k('5', '5')}${k('6', '6')}${k('+', '+', 'op')}${k('1', '1')}${k('2', '2')}${k('3', '3')}${k('=', '=', 'op')}${k(',', ',')}${k('0', '0')}${k('back', '⌫', 'muted')}${k('done', 'done', 'done')}</div>`;
     document.body.appendChild(kp); document.body.classList.add('kp-open');
     requestAnimationFrame(() => { const r = el.getBoundingClientRect(), top = window.innerHeight - kp.offsetHeight; if (r.bottom > top - 12 || r.top < 70) window.scrollBy({ top: r.top - (top / 2), behavior: 'smooth' }); });
@@ -718,6 +722,7 @@ document.addEventListener('change', e => { if (e.target.dataset?.c !== 'reflPeri
   const press = key => {
     if (!inp) return; const el = inp, cid = el.dataset.assign;
     if (key === 'done') return close(true);
+    if (key === 'close') return close(false);
     if (key === 'auto' || key === 'move' || key === 'details') { close(true); setTimeout(() => { if (key === 'move') moveSheet(cid); else { catSheet(cid); if (key === 'auto') setTimeout(() => { [...$$('#scrim .sec-t')].find(x => /Auto-Assign/.test(x.textContent))?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 150); } }, 30); return; }
     let v = el.value;
     if (key === 'clear') v = '';
@@ -731,6 +736,8 @@ document.addEventListener('change', e => { if (e.target.dataset?.c !== 'reflPeri
     const el = e.target.closest?.('.ass-in'); if (el && touch()) { e.preventDefault(); el.setAttribute('inputmode', 'none'); el.readOnly = true; open(el); return; }
     if (kp && !e.target.closest('.ykp')) close(true);
   }, true);
+  // whatever focuses an Assigned cell on the phone (tap, Enter, script), it is always this keypad, never the iOS keyboard
+  document.addEventListener('focusin', e => { const el = e.target; if (!el.matches?.('.ass-in') || !touch()) return; el.blur(); if (inp?.dataset.assign !== el.dataset.assign) open(el); });
   window.addEventListener('blur', () => close(true));
 })();
 

@@ -318,7 +318,7 @@ function catRow(c, m) {
       <button class="ibtn" data-a="cMove" data-c="${c.id}" data-d="-1" aria-label="Move up">${I.up}</button>
       <button class="ibtn" data-a="cMove" data-c="${c.id}" data-d="1" aria-label="Move down">${I.down}</button>
       <button class="ibtn" data-a="cHide" data-c="${c.id}" aria-label="${c.hidden ? 'Unhide' : 'Hide'}">${c.hidden ? I.eye : I.eyeoff}</button></div>` : `
-    <span class="ass-w w-ass"><input class="ass-in" inputmode="decimal" enterkeyhint="done" aria-label="Assigned to ${esc(c.name)}" data-assign="${c.id}" value="${fmtIn(x.assigned)}"><i class="ass-eur" aria-hidden="true">€</i></span>
+    <span class="ass-w w-ass"><input class="ass-in" inputmode="${!DESK() && matchMedia('(pointer:coarse)').matches ? 'none' : 'decimal'}" enterkeyhint="done" aria-label="Assigned to ${esc(c.name)}" data-assign="${c.id}" value="${fmtIn(x.assigned)}"><i class="ass-eur" aria-hidden="true">€</i></span>
     <button class="w-act hide-s num muted act actbtn" data-a="catActivity" data-c="${c.id}" title="See these transactions">${fmt(x.activity)}</button>
     <span class="w-av"><button class="pill ${s.cls}" data-a="pillTap" data-c="${c.id}">${pillIcon}${fmt(x.available)}</button></span>`}
   </div>`;
