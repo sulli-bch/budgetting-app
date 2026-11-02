@@ -67,7 +67,7 @@ function render() {
   animateRender();
   if (render._keepScroll) { window.scrollTo(0, y); const mn = $('.main'); if (mn) mn.scrollTop = mainY; } render._keepScroll = false;
   $('#nav').innerHTML = DESK() ? '' : `<div>
-    ${navBtn('home', 'Home', I.home, homeBadge())}${navBtn('plan', 'Plan', I.plan)}${navBtn('tx', 'Spending', I.cash)}${navBtn('accounts', 'Accounts', I.accts)}${navBtn('reflect', 'Reflect', I.reflect)}
+    ${navBtn('home', 'Home', NAVF.home, homeBadge())}${navBtn('plan', 'Plan', NAVF.plan)}${navBtn('tx', 'Spending', NAVF.tx)}${navBtn('accounts', 'Accounts', NAVF.accounts)}${navBtn('reflect', 'Reflect', NAVF.reflect)}
   </div>`;
   navPill();
   const showFab = !DESK() && (A.view === 'home' || A.view === 'plan' || A.view === 'accounts' || A.view === 'tx') && !A.ui.select && A.plan.accounts.some(a => !a.closed);
@@ -109,6 +109,17 @@ function navPill() {
   }
   navPill.x = x;
 }
+/* YNAB iOS header: big left title, glass capsule buttons at the top right */
+const bigHead = (title, right) => `<div class="top wrap yhead"><div class="top-bar"><span></span><div class="top-title"></div><div class="yright">${right}</div></div></div><div class="wrap"><h1 class="home-h">${title}</h1></div>`;
+const gcap = (...btns) => `<div class="gcap">${btns.join('')}</div>`;
+const icoF = d => `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${d}</svg>`;
+const NAVF = {
+  home: icoF('<path d="M12 3.2 2.6 10.6a1 1 0 0 0 1.2 1.6L5 11.3V20a1 1 0 0 0 1 1h4.5v-6h3v6H18a1 1 0 0 0 1-1v-8.7l1.2.9a1 1 0 0 0 1.2-1.6z"/>'),
+  plan: icoF('<path d="M6 3h12a1 1 0 0 1 1 1v2H5V4a1 1 0 0 1 1-1zm-2 5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zm5 4v6h6v-6z"/>'),
+  tx: icoF('<path d="M3 6h18a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zm9 2.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4zM5 9.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm14 3a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>'),
+  accounts: icoF('<path d="M12 2.5 2.5 7.4V9h19V7.4zM4 10.5v7h2.6v-7zm4.4 0v7H11v-7zm4.6 0v7h2.6v-7zm4.4 0v7H20v-7zM3 19h18v2.5H3z"/>'),
+  reflect: icoF('<rect x="3.5" y="11" width="4" height="9" rx="1.2"/><rect x="10" y="4" width="4" height="16" rx="1.2"/><rect x="16.5" y="8" width="4" height="12" rx="1.2"/>'),
+};
 const navBtn = (v, l, icn, badge = 0) => `<button data-a="nav" data-v="${v}" class="${A.view === v || (v === 'home' && A.view === 'settings') ? 'on' : ''}" aria-current="${A.view === v ? 'page' : 'false'}">${icn}${badge ? `<i class="nbadge">${badge > 99 ? '99+' : badge}</i>` : ''}<span>${l}</span></button>`;
 const homeBadge = () => A.tx.filter(t => t.approved === false && L.acct[t.acct] && !L.acct[t.acct].closed).length;
 function topBar(title, sub, left = '', right = '') {
@@ -361,17 +372,22 @@ const linkedCards = a => isCredit(a) || !onBudget(a) ? [] : A.plan.accounts.filt
 function viewAccounts() {
   const p = A.plan, b = balances();
   let net = 0; for (const a of p.accounts) if (!a.closed) net += b[a.id].working;
-  let h = topBar('Accounts', 'Net Worth ' + fmt(net), undoBtns(), `<button class="ibtn" data-a="acctNew" aria-label="Add Account">${I.plus}</button>`);
+  const ph = !DESK();
+  let h = ph ? bigHead('Accounts', gcap(`<button class="ibtn" data-a="acctNew" aria-label="Add Account">${I.plus}</button>`, `<button class="ibtn" data-a="moreMenu" aria-label="More">${I.dots}</button>`)) : topBar('Accounts', 'Net Worth ' + fmt(net), undoBtns(), `<button class="ibtn" data-a="acctNew" aria-label="Add Account">${I.plus}</button>`);
   const ro = A.ui.reorder;
   h += `<div class="wrap">`;
   if (!p.accounts.length) return h + `<div class="empty"><strong>No accounts yet</strong><span>Add your checking account with the balance your bank shows today.</span><button class="btn pri" data-a="acctNew">${I.plus} Add Account</button></div></div>`;
   for (const [key, lbl, fn] of SECTIONS) {
     const list = p.accounts.filter(a => fn(a) && !a.closed); if (!list.length) continue;
     const tot = list.reduce((s, a) => s + b[a.id].working, 0);
-    h += `<div class="sec-t"><span>${lbl}</span><span class="num">${fmt(tot)}</span></div><div class="card">`;
+    const shut = ph && A.ui.collapsed['as_' + key];
+    h += ph ? `<button class="ysec" data-a="acctSec" data-k="${key}" aria-expanded="${!shut}"><span class="chev ${shut ? 'shut' : ''}">${I.down}</span><span class="grow">${lbl}</span><span class="num">${fmt(tot)}</span></button>` : `<div class="sec-t"><span>${lbl}</span><span class="num">${fmt(tot)}</span></div>`;
+    if (shut) continue;
+    h += `<div class="card">`;
     for (const a of list) {
       const x = b[a.id]; const unap = A.tx.filter(t => t.acct === a.id && t.approved === false).length;
       if (ro) { h += `<div class="li"><span class="ic">${acctIcon(a)}</span><span class="grow"><strong class="ellip" style="display:block">${esc(a.name)}</strong></span><button class="ibtn" data-a="aMove" data-id="${a.id}" data-d="-1" aria-label="Move up">${I.up}</button><button class="ibtn" data-a="aMove" data-id="${a.id}" data-d="1" aria-label="Move down">${I.down}</button></div>`; continue; }
+      if (ph && !ro) { h += `<button class="li yacct" data-a="openAcct" data-id="${a.id}"><span class="udot">${unap ? '<i aria-label="To approve"></i>' : ''}</span><span class="ic round">${acctIcon(a)}</span><span class="grow ellip">${esc(a.name)}</span><strong class="num ${x.working > 0 ? 'amt-pos' : x.working === 0 ? 'muted' : ''}">${fmt(x.working)}</strong>${I.right}</button>`; continue; }
       h += `<button class="li" data-a="openAcct" data-id="${a.id}"><span class="ic">${acctIcon(a)}</span>
         <span class="grow"><strong class="ellip" style="display:block">${esc(a.name)}</strong><span class="small muted">${ACCT[a.type].label}${unap ? ` · <b style="color:var(--info)">${unap} to approve</b>` : ''}${a.lastRec ? ' · reconciled ' + fmtDate(a.lastRec) : ''}</span></span>
         <strong class="num ${x.working < 0 ? 'amt-bad' : ''}">${fmt(x.working)}</strong></button>`;
@@ -511,7 +527,9 @@ function viewRegister() {
   let h = desk ? `<div class="rhead"><div class="grow"><h1>${all ? 'All Accounts' : `${esc(a.name)} <button class="star ${a.star ? 'on' : ''}" data-a="acctStar" data-id="${id}" aria-label="${a.star ? 'Unstar' : 'Star'} this account" title="Toggle Starred">${a.star ? '★' : '☆'}</button>`}</h1><div class="sub">${esc(sub2)}</div></div>${all ? '' : `<button class="rh-edit" data-a="acctEdit" data-id="${id}" aria-label="Edit account" title="Edit Account">${I.edit}</button><button class="btn pri rh-rec" data-a="reconcile" data-id="${id}">Reconcile</button>`}</div>` : topBar(all ? (A.view === 'tx' && !desk ? 'Spending' : 'All Accounts') : `${esc(a.name)} <button class="star ${a.star ? 'on' : ''}" data-a="acctStar" data-id="${id}" aria-label="${a.star ? 'Unstar' : 'Star'} this account" title="Toggle Starred">${a.star ? '★' : '☆'}</button>`, sub2,
     A.view === 'tx' || desk ? undoBtns() : `<button class="ibtn" data-a="backAccts" aria-label="Back to accounts">${I.left}</button>`,
     all ? (A.view === 'tx' && !desk ? `<button class="ibtn" data-a="moreMenu" aria-label="More">${I.dots}</button>` : `<button class="ibtn" data-a="importSheet" aria-label="File Import">${I.upload}</button>`) : (desk ? `<button class="ibtn" data-a="acctEdit" data-id="${id}" aria-label="Edit account">${I.edit}</button>` : `<button class="ibtn" data-a="acctMore" data-id="${id}" aria-label="More">${I.dots}</button>`));
-  h += `<div class="wrap">`;
+  const spendTab0 = A.view === 'tx' && all && !desk;
+  if (spendTab0) h = bigHead('Spending', `<button class="tbtn gpill ${A.ui.select ? 'on' : ''}" data-a="toggleSelect">${A.ui.select ? 'Done' : 'Select'}</button>` + gcap(`<button class="ibtn ${A.ui.searchOn ? 'on' : ''}" data-a="searchToggle" aria-label="Search">${I.search}</button>`, `<button class="ibtn" data-a="moreMenu" aria-label="More">${I.dots}</button>`));
+  h += `<div class="wrap ${desk ? '' : 'ylist'}">`;
   { const un = (all ? A.tx.filter(t => L.acct[t.acct]) : A.tx.filter(t => t.acct === id)).filter(t => t.approved === false).length;
     const spendTab = A.view === 'tx' && all && !desk;
     if (spendTab) { // YNAB mobile Spending tab: "N New transactions · Review" and "Show N uncleared transactions"
@@ -526,7 +544,8 @@ function viewRegister() {
   if (!all && ACCT[a.type]?.grp === 'loan') { try { h += loanPanel(a); } catch (e) { console.warn('loan panel', e); } }
   const dups = all ? [] : cardDups(id);
   if (dups.length) h += `<div class="banner warn">${I.info}<span>${dups.length} card purchase${dups.length > 1 ? 's are' : ' is'} also entered by hand in ${esc(L.acct[dups[0].main.acct].name)}</span><button class="btn sm" data-a="dupReview" data-id="${id}">Review</button></div>`;
-  h += `<div class="toolbar">
+  const showSearch = !spendTab0 || A.ui.searchOn || A.ui.search || A.ui.regFilter !== 'all' || A.ui.catFilter;
+  if (!spendTab0) h += `<div class="toolbar">
     ${desk ? `<button class="tbtn" data-a="newTx">${I.plus} Add Transaction</button>` : ''}
     ${!all && !desk ? `<button class="tbtn" data-a="reconcile" data-id="${id}">${I.lock} Reconcile</button>` : ''}
     <button class="tbtn" data-a="importSheet" data-id="${all ? '' : id}">${I.upload} File Import</button>
@@ -536,10 +555,10 @@ function viewRegister() {
     ${desk ? `<button class="tbtn" data-a="regViewMenu">View${regView().range !== 'all' ? ' · ' + ({ tm: 'This Month', lm: 'Last Month', '3m': 'Latest 3 Months', ty: 'This Year', ly: 'Last Year', custom: 'Custom' })[regView().range] : ''}</button>` : ''}
     ${desk ? `<input id="regSearch" class="in rsearch" type="search" placeholder="Search ${esc(all ? 'All Accounts' : a.name)}" value="${esc(A.ui.search)}" data-i="search" aria-label="Search transactions">` : `<button class="tbtn ${A.ui.select ? 'on' : ''}" data-a="toggleSelect">${I.sel} ${A.ui.select ? 'Done' : 'Select'}</button>`}
   </div>`;
-  if (!desk) h += `<input id="regSearch" class="in" type="search" placeholder="Search payee, category, memo, amount…" value="${esc(A.ui.search)}" data-i="search" aria-label="Search transactions" style="margin-top:8px">`;
+  if (!desk && showSearch) h += `<input id="regSearch" class="in" type="search" placeholder="Search payee, category, memo, amount…" value="${esc(A.ui.search)}" data-i="search" aria-label="Search transactions" style="margin-top:8px">`;
   const rf = (f, l) => `<button class="chip ${A.ui.regFilter === f ? 'on' : ''}" data-a="regFilter" data-f="${f}">${l}</button>`;
   if (A.ui.catFilter) h += `<div class="banner info">${I.info}<span>${esc(catName(A.ui.catFilter.cid))} · ${esc(monthLabel(A.ui.catFilter.m))} · ${fmt(regList().reduce((s, t) => s + txLines(t).filter(l => l.cat === A.ui.catFilter.cid).reduce((a, l) => a + l.amount, 0), 0))}</span><button class="btn sm" data-a="catActivityOff">Show all</button></div>`;
-  if (!desk || A.ui.regFilter !== 'all') h += `<div class="chips">${rf('all', 'All')}${rf('unapproved', 'Unapproved')}${rf('uncat', 'Category Needed')}${rf('uncleared', 'Uncleared')}${rf('cleared', 'Cleared')}${rf('flagged', 'Flagged')}</div>`;
+  if ((!desk && showSearch) || (desk && A.ui.regFilter !== 'all')) h += `<div class="chips">${rf('all', 'All')}${rf('unapproved', 'Unapproved')}${rf('uncat', 'Category Needed')}${rf('uncleared', 'Uncleared')}${rf('cleared', 'Cleared')}${rf('flagged', 'Flagged')}</div>`;
   const sch = A.plan.scheduled.filter(s => all || s.acct === id || s.transferAcct === id).sort((x, y) => x.next < y.next ? -1 : 1);
   if (sch.length && A.ui.regFilter === 'all' && !A.ui.search) {
     h += `<div class="day">Scheduled</div><div class="card">`;
@@ -569,7 +588,7 @@ function viewRegister() {
     } else {
       let day = '';
       for (const t of list.slice(0, lim)) {
-        if (t.date !== day) { if (day) h += `</div>`; day = t.date; h += `<div class="day">${dayLabel(t.date)}</div><div class="card">`; }
+        if (t.date !== day) { if (day) h += `</div>`; day = t.date; h += `<div class="day">${DESK() ? dayLabel(t.date) : fullDay(t.date)}</div><div class="card daycard">`; }
         h += txRow(t, all, null);
       }
       h += `</div>`;
@@ -611,6 +630,7 @@ function txRow(t, showAcct, runBal) {
       <button class="main-b" data-a="grpEdit" data-id="${lead.id}"><span class="p ellip">${esc(legPayee(t._legs))}</span><span class="legchips">${t._legs.map(l => `<span class="legchip">${esc(legLabel(l))} <b class="num">${fmt(l.amount)}</b></span>`).join('')}</span></button>
       <div><div class="a ${t.amount > 0 ? 'amt-pos' : ''}">${t.amount > 0 ? '+' : ''}${fmt(t.amount)}</div>${runBal != null ? `<div class="rb num">${fmt(runBal)}</div>` : ''}</div>
       ${t._legs.some(l => l.approved === false) ? `<button class="btn sm pri" data-a="grpApprove" data-id="${lead.id}">Approve</button>` : clrBtn(lead)}</div>`; }
+  if (!DESK()) return txRowY(t, showAcct, runBal);
   let c = txCatLabel(t); const todo = c === 'Category Needed';
   if (showAcct) c = (L.acct[t.acct]?.name || '') + (c ? ' · ' + c : '');
   if (t.memo) c += (c ? ' · ' : '') + t.memo;
@@ -619,6 +639,17 @@ function txRow(t, showAcct, runBal) {
     ${t.flag ? `<span class="flag" style="background:var(--flag-${t.flag})"></span>` : ''}
     <button class="main-b" data-a="txEdit" data-id="${t.id}"><span class="p ellip">${esc(payeeName(t) || 'No payee')}</span><span class="c ellip ${todo ? 'todo' : ''}">${esc(c)}</span></button>
     <div><div class="a ${t.amount > 0 ? 'amt-pos' : ''}">${t.amount > 0 ? '+' : ''}${fmt(t.amount)}</div>${runBal != null ? `<div class="rb num">${fmt(runBal)}</div>` : ''}</div>
+    ${clrBtn(t)}</div>`;
+}
+const fullDay = iso => { const d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); };
+function txRowY(t, showAcct, runBal) {
+  const c = txCatLabel(t), todo = c === 'Category Needed' || (!c && !t.transferAcct && onBudget(L.acct[t.acct]));
+  const chip = t.transferAcct && !c ? trLabel(t.transferAcct, t.acct) : (c || '');
+  return `<div data-tid="${t.id}" class="tx yrow ${t.approved === false ? 'unapproved' : ''} ${todo ? 'need' : ''}">
+    ${A.ui.select ? `<input type="checkbox" class="chk" data-c="selTx" data-id="${t.id}" ${A.ui.selected.has(t.id) ? 'checked' : ''} aria-label="Select">` : ''}
+    ${t.flag ? `<span class="flag" style="background:var(--flag-${t.flag})"></span>` : ''}
+    <button class="main-b" data-a="txEdit" data-id="${t.id}"><span class="p ellip">${esc(payeeName(t) || (t.transferAcct ? trLabel(t.transferAcct, t.acct) : 'No payee'))}</span><span class="crow">${chip ? `<span class="cchip ${todo ? 'todo' : ''}">${todo ? ico('<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 13h4l1 3h6l1-3h4"/>') : ''}${esc(todo ? 'Category Needed' : chip)}</span>` : ''}${t.memo ? `<span class="cmemo ellip">${esc(t.memo)}</span>` : ''}</span></button>
+    <div class="rt"><div class="a ${t.amount > 0 ? 'amt-pos' : ''}">${t.amount > 0 ? '+' : ''}${fmt(t.amount)}</div>${showAcct ? `<div class="acc ellip">${esc(L.acct[t.acct]?.name || '')}</div>` : runBal != null ? `<div class="rb num">${fmt(runBal)}</div>` : ''}</div>
     ${clrBtn(t)}</div>`;
 }
 function actionBar() {

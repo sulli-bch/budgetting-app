@@ -772,4 +772,29 @@ body.kp-open .main,body.kp-open #app{padding-bottom:330px}body.kp-open #nav,body
 @media (min-width:700px){ .sheet{animation:sheetpop .35s cubic-bezier(.3,1.3,.5,1) both} @keyframes sheetpop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}} .scrim.closing .sheet{animation:fadeout .2s ease both} }
 @media (prefers-reduced-motion:reduce){ .sheet,.scrim,.fab,.scrim.closing .sheet{animation:none!important} .btn,.ibtn,.fab{transition:none} }
 .ykp-top{grid-template-columns:48px repeat(3,1fr)!important}.ykp-top .x{justify-content:center}.ykp-top .x svg{width:20px;height:20px}
+
+/* ===== YNAB iOS look (phone) ===== */
+@media (max-width:1023px){
+.yhead{background:transparent!important}.yhead .top-bar{justify-content:space-between}.yright{display:flex;gap:8px;align-items:center}
+.gcap{display:flex;align-items:center;border-radius:999px;background:var(--glass,rgba(40,40,54,.5));border:1px solid var(--glass-line,rgba(255,255,255,.1));-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:inset 0 1px 0 var(--glass-hi,rgba(255,255,255,.12));padding:0 4px}
+.gcap .ibtn{background:transparent!important;border:0!important;box-shadow:none!important;width:44px;height:44px}
+.gpill{height:46px;padding:0 18px;border-radius:999px;background:var(--glass,rgba(40,40,54,.5));border:1px solid var(--glass-line,rgba(255,255,255,.1));-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:var(--fg);font-size:16px;font-weight:600}
+.yhead+.wrap .home-h{font-size:34px;font-weight:800;margin:2px 0 12px}
+.ysec{text-align:left;display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;color:var(--fg);font:inherit;font-size:19px;font-weight:700;padding:16px 4px 10px}
+.ysec .num{font-size:16px;font-weight:600;color:var(--muted)}.ysec .chev svg{width:18px;height:18px}.ysec .chev.shut svg{transform:rotate(-90deg)}
+.yacct{gap:12px;min-height:64px}.yacct .ic.round{border-radius:999px;width:40px;height:40px;border:1px solid var(--line)}
+.yacct strong.num{font-weight:600}.yacct>svg{width:16px;height:16px;color:var(--muted);flex:none}
+.udot{width:10px;flex:none;display:flex;justify-content:center}.udot i{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.ylist .day{margin:0 -16px;padding:10px 16px;background:var(--surface-2);text-transform:none;letter-spacing:0;font-size:15px;font-weight:700;color:var(--fg)}
+.ylist .daycard{margin:0 -16px;border-radius:0;border-left:0;border-right:0;box-shadow:none}
+.yrow{padding:12px 16px;align-items:center;position:relative}
+.yrow .p{font-size:16px;font-weight:700}
+.yrow .crow{display:flex;align-items:center;gap:8px;min-width:0;margin-top:4px}
+.cchip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;background:var(--surface-2);font-size:13.5px;font-weight:600;color:var(--fg);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.cchip svg{width:14px;height:14px}
+.cchip.todo{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn)}
+.cmemo{font-size:12.5px;color:var(--muted)}
+.yrow.need::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--warn)}
+.yrow .rt{text-align:right;flex:none;max-width:42%}.yrow .rt .a{font-size:16px;font-weight:700}.yrow .rt .acc{font-size:13px;color:var(--muted);margin-top:4px}
+}
 </style>
