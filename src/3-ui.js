@@ -28,7 +28,11 @@ const I = {
   note: ico('<path d="M4 4h16v12l-4 4H4z"/><path d="M16 20v-4h4"/>'), sel: ico('<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/>'),
   info: ico('<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>'), sync: ico('<path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/>'),
 };
-const acctIcon = a => isCredit(a) ? I.card : ACCT[a.type]?.grp === 'loan' ? I.loan : a.type === 'savings' ? I.piggy : a.type === 'cash' ? I.cash : ACCT[a.type]?.grp === 'tracking' ? I.chart : I.bank;
+/* bank logos: account name -> bank website, logo fetched as the site's icon; falls back to the generic icon */
+const BANK_DOM = [[/\b(sg|societe generale|esalia)\b/, 'societegenerale.fr'], [/shine/, 'shine.fr'], [/pluxee/, 'pluxee.fr'], [/revolut/, 'revolut.com'], [/sumeria/, 'sumeria.eu'], [/lydia/, 'lydia-app.com'], [/tudigo/, 'tudigo.co'], [/linxea/, 'linxea.com'], [/fortuneo/, 'fortuneo.fr'], [/monabanq/, 'monabanq.com'], [/maaf/, 'maaf.fr'], [/trade ?republic/, 'traderepublic.com'], [/bourso/, 'boursobank.com'], [/\bn26\b/, 'n26.com'], [/american express|amex/, 'americanexpress.com'], [/floa/, 'floabank.fr'], [/younited/, 'younited-credit.com'], [/cofidis/, 'cofidis.fr'], [/sofinco/, 'sofinco.fr'], [/amundi/, 'amundi.fr'], [/personeo|bnp/, 'mabanque.bnpparibas'], [/samsung/, 'samsung.com'], [/lcl/, 'lcl.fr'], [/credit agricole/, 'credit-agricole.fr'], [/caisse d.?epargne/, 'caisse-epargne.fr'], [/banque populaire/, 'banquepopulaire.fr'], [/credit mutuel/, 'creditmutuel.fr'], [/la banque postale/, 'labanquepostale.fr'], [/hello ?bank/, 'hellobank.fr'], [/qonto/, 'qonto.com'], [/paypal/, 'paypal.com'], [/wise/, 'wise.com'], [/swile/, 'swile.co'], [/edenred/, 'edenred.fr']];
+const bankDomain = a => { if (a.logo === '') return ''; if (a.logo) return a.logo; const n = (a.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' '); const m = BANK_DOM.find(([r]) => r.test(n)); return m ? m[1] : ''; };
+const acctIcon = a => { const d = bankDomain(a), ic = acctIcon0(a); return d ? `<img class="blogo" src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=128" alt="" loading="lazy" onerror="this.nextElementSibling.hidden=false;this.remove()"><span class="blogo-fb" hidden>${ic}</span>` : ic; };
+const acctIcon0 = a => isCredit(a) ? I.card : ACCT[a.type]?.grp === 'loan' ? I.loan : a.type === 'savings' ? I.piggy : a.type === 'cash' ? I.cash : ACCT[a.type]?.grp === 'tracking' ? I.chart : I.bank;
 
 /* ---------- toast ---------- */
 
@@ -534,8 +538,8 @@ function viewRegister() {
     const spendTab = A.view === 'tx' && all && !desk;
     if (spendTab) { // YNAB mobile Spending tab: "N New transactions · Review" and "Show N uncleared transactions"
       const unc = A.tx.filter(t => L.acct[t.acct] && onBudget(L.acct[t.acct]) && t.cleared === 'u').length;
-      if (un) h += `<div class="card" style="margin-top:8px"><div class="li"><span class="hnum">${un}</span><span class="grow">New transaction${un > 1 ? 's' : ''}</span><button class="btn sm soft" data-a="cardMode">Review</button></div></div>`;
-      if (unc && A.ui.regFilter !== 'uncleared') h += `<button class="card li" style="margin-top:8px; width:100%" data-a="regFilter" data-f="uncleared"><span class="grow">Show <b class="hnum">${unc}</b> uncleared transactions</span>${I.right}</button>`;
+      if (un) h += `<div class="card spcard" style="margin-top:8px"><div class="li"><span class="hnum">${un}</span><span class="grow">New transaction${un > 1 ? 's' : ''}</span><button class="btn sm soft" data-a="cardMode">Review</button></div></div>`;
+      if (unc && A.ui.regFilter !== 'uncleared') h += `<button class="card li spcard" style="margin-top:8px; width:100%" data-a="regFilter" data-f="uncleared"><span class="grow">Show <b class="hnum">${unc}</b> uncleared transactions</span>${I.right}</button>`;
     } else if (un && A.ui.regFilter !== 'unapproved') h += `<div class="banner info" style="margin-top:8px">${I.info}<span>${un} new transaction${un > 1 ? 's' : ''} to approve or categorize</span><button class="btn sm pri" data-a="regFilter" data-f="unapproved">View</button></div>`; }
   let bk0 = all ? null : bankBalLine(id, bal);
   const bdup = all || !bankAcctOf(id) ? [] : bankDupes(id);
