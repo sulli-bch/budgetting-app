@@ -44,7 +44,7 @@ function bankSetupSheet() {
   const body = `<p style="margin:0" class="small">Your bank login happens on your bank's own page. Your Enable Banking key stays in a small script on <b>your</b> Google account; this app and GitHub never see it.</p>
     <div class="card" style="padding:14px; display:flex; flex-direction:column; gap:8px">
       <strong>1. Create the proxy (5 min)</strong>
-      <span class="small muted">script.google.com → New project → paste the code from <a href="https://github.com/sajmarkcom/budgetting-app/blob/main/bank-proxy/Code.gs" target="_blank" rel="noopener">bank-proxy/Code.gs</a> → Deploy → New deployment → Web app, Execute as: Me, Who has access: Anyone → copy the URL ending in /exec.</span>
+      <span class="small muted">script.google.com → New project → paste the code from <a href="https://github.com/sulli-bch/budgetting-app/blob/main/bank-proxy/Code.gs" target="_blank" rel="noopener">bank-proxy/Code.gs</a> → Deploy → New deployment → Web app, Execute as: Me, Who has access: Anyone → copy the URL ending in /exec.</span>
       <strong>2. Create the Enable Banking app</strong>
       <span class="small muted">enablebanking.com → sign in → API applications → Production → redirect URL = your /exec URL → Register (a .pem file downloads) → link your own accounts when asked.</span>
       <strong>3. Add the key to the script</strong>
