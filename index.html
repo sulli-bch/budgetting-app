@@ -4933,18 +4933,21 @@ async function applePayPull() {
   if (apBusy || !A.plan || typeof viaScript !== 'function' || !viaScript()) return; apBusy = true;
   try {
     const r = await px('inboxTake'); const items = r.items || []; if (!items.length) return;
-    let last = null;
-    mutate(items.length > 1 ? items.length + ' Apple Pay payments added' : 'Apple Pay payment added', () => {
+    let n = 0, todo = 0;
+    mutate('Apple Pay import', () => {
       for (const it of items) {
         const amt = -Math.abs(apParseAmount(it.amount)); if (!amt) continue;
         const acct = apAccount(it.card); if (!acct) continue;
         const raw = it.payee || 'Apple Pay';
         const y = (typeof learnedPayee === 'function' && learnedPayee(raw)) || getPayee(typeof cleanPayee === 'function' ? cleanPayee(raw) : raw);
-        const t = { id: uid(), acct, date: isoOf(new Date(it.at || Date.now())), payee: y.id, cat: y.lastCat && L.cat[y.lastCat] ? y.lastCat : null, memo: 'Apple Pay' + (it.card ? ' · ' + it.card : ''), amount: amt, cleared: 'u', flag: null, approved: false, rawPayee: raw };
-        A.tx.push(t); last = t;
+        const cat = y.lastCat && L.cat[y.lastCat] ? y.lastCat : null;
+        // imported straight away: approved when the category is known, left to categorize otherwise; no sheet pops up
+        const t = { id: uid(), acct, date: isoOf(new Date(it.at || Date.now())), payee: y.id, cat, memo: 'Apple Pay' + (it.card ? ' · ' + it.card : ''), amount: amt, cleared: 'u', flag: null, approved: !!cat, rawPayee: raw };
+        A.tx.push(t); n++; if (!cat) todo++;
       }
-    });
-    if (last && document.visibilityState === 'visible') setTimeout(() => txSheet(last.id), 200);
+      if (!n) return false;
+    }, { silent: true });
+    if (n) toast(n + (n > 1 ? ' Apple Pay payments imported' : ' Apple Pay payment imported') + (todo ? ' · ' + todo + ' to categorize' : ''), true);
   } catch (e) { if (e.code !== 'unknown_action') console.warn('applePay', e); }
   finally { apBusy = false; }
 }
@@ -4954,7 +4957,7 @@ Object.assign(ACT, {
   apSetup: () => {
     const c = typeof proxyCfg === 'function' ? proxyCfg() : null;
     if (!c) return toast('Connect your Apps Script first (Bank Connections)');
-    openSheet('Apple Pay shortcut', `<p class="small muted" style="margin:0">Each Apple Pay payment on your iPhone is sent to your own script; the app adds it here (unapproved, category guessed) and opens it so you can check it. The bank line that arrives later is matched with it, not duplicated.</p>
+    openSheet('Apple Pay shortcut', `<p class="small muted" style="margin:0">Each Apple Pay payment on your iPhone is sent to your own script; the app imports it here automatically (approved when the category is known, otherwise left to categorize). The bank line that arrives later is matched with it, not duplicated.</p>
       <div class="card" style="padding:14px; display:flex; flex-direction:column; gap:8px">
       <strong>On your iPhone: Shortcuts → Automation → + → Transaction</strong>
       <span class="small">1. Choose your cards, “Is tapped”, then <b>Run Immediately</b>.</span>
