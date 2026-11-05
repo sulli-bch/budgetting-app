@@ -266,7 +266,7 @@ function txBody() {
   if (D.splits) {
     const sum = D.splits.reduce((s, x) => s + x.amount, 0);
     splitHtml = `<div class="sec-t" style="padding-top:0"><span>Split</span><span class="num" id="spStatus" style="color:${sum === D.amount ? 'var(--good)' : 'var(--warn)'}">${sum === D.amount ? 'Balanced' : 'Remaining ' + fmt(D.amount - sum)}</span></div>
-      ${D.splits.map((s, i) => `<div class="split"><select class="in" data-sp="cat" data-i="${i}" aria-label="Category ${i + 1}">${catOptions(s.cat, { m: monthOf(D.date) })}</select>
+      ${D.splits.map((s, i) => `<div class="split"><select class="in" data-sp="cat" data-i="${i}" aria-label="Category ${i + 1}">${catOptions(s.cat, { m: monthOf(D.date), amounts: !D.id })}</select>
         <input class="in num" inputmode="decimal" data-sp="amount" data-i="${i}" value="${s.amount ? fmtIn(s.amount) : ''}" placeholder="0,00" aria-label="Amount ${i + 1}">
         <button class="ibtn" data-a="spDel" data-i="${i}" aria-label="Remove">${I.close}</button>
         <input class="in" style="grid-column:1/-1; height:40px; font-size:14px" data-sp="memo" data-i="${i}" value="${esc(s.memo || '')}" placeholder="Memo (optional)" aria-label="Memo ${i + 1}"></div>`).join('')}
@@ -288,7 +288,7 @@ function txBody() {
     <div class="ycard">
       ${D.kind === 'transfer' ? row(I.swap, 'To account', `<select id="txTo" class="yin" data-d="transferAcct"><option value="">Choose…</option>${acctOptions(D.transferAcct, x => x.id !== D.acct)}</select>`)
         : row(I.people, 'Payee', `<input id="txPayee" class="yin" list="payeeList" value="${esc(D.payee)}" data-d="payee" placeholder="Choose a payee" autocomplete="off"><datalist id="payeeList">${payees}</datalist>`)}
-      ${needCat && !D.splits ? row(I.plan, 'Category', `<div class="row"><select id="txCat" class="yin grow" data-d="cat">${catOptions(D.cat, { m: monthOf(D.date || todayISO()), rta: D.kind !== 'transfer' })}</select>${D.kind !== 'transfer' ? `<button class="ibtn" data-a="spOn" aria-label="Split" title="Split">${I.split}</button>` : ''}</div>`) : ''}
+      ${needCat && !D.splits ? row(I.plan, 'Category', `<div class="row"><select id="txCat" class="yin grow" data-d="cat">${catOptions(D.cat, { m: monthOf(D.date || todayISO()), rta: D.kind !== 'transfer', amounts: !D.id })}</select>${D.kind !== 'transfer' ? `<button class="ibtn" data-a="spOn" aria-label="Split" title="Split">${I.split}</button>` : ''}</div>`) : ''}
       ${row(I.accts, D.kind === 'transfer' ? 'From account' : 'Account', `<select id="txAcct" class="yin" data-d="acct">${acctOptions(D.acct)}</select>`)}
       ${row(I.cal, 'Date', `<button class="yin ydate" data-a="txCalToggle">${esc(new Date(D.date + 'T12:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).replace(/^(\d+) (\w+)/, '$2 $1,'))}</button><input id="txDate" type="hidden" value="${D.date}" data-d="date">`, D.calOpen ? 'open' : '')}
       ${D.calOpen ? cal() : ''}
